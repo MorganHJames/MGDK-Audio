@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using MGDK.Util;
 
 namespace MGDK.Audio
 {
@@ -10,6 +11,7 @@ namespace MGDK.Audio
         private static SoundManager instance;
         private static AudioSource audioSource;
         private Dictionary<string, Sound> soundDictionary;
+        private static ObjectPooler objectPooler;
 
         public static SoundManager Instance
         {
