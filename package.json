@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "displayName": "MGDK-Audio",
   "description": "This package contains all audio scripts and prefabs for MGDK.",
-  "dependencies": {
-    "com.mgdk.audio": "https://github.com/MorganHJames/MGDK-Audio.git"
-  },
   "unity": "2022.3",
   "unityRelease": "26f1",
   "author": {
