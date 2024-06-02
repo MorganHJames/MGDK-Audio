@@ -1,0 +1,13 @@
+{
+  "name": "com.mgdk.audio",
+  "version": "1.0.0",
+  "displayName": "MGDK-Audio",
+  "description": "This package contains all audio scripts and prefabs for MGDK.",
+  "unity": "2022.3",
+  "unityRelease": "26f1",
+  "author": {
+    "name": "Morgan James",
+    "email": "morganhmjames@gmail.com",
+    "url": "https://morganjames.dev"
+  }
+}
