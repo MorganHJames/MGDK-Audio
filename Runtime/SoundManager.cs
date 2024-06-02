@@ -4,12 +4,10 @@ using MGDK.Util;
 
 namespace MGDK.Audio
 {
-    [RequireComponent(typeof(AudioSource))]
     public class SoundManager : MonoBehaviour
     {
         [SerializeField] private Sound[] soundList;
         private static SoundManager instance;
-        private static AudioSource audioSource;
         private Dictionary<string, Sound> soundDictionary;
         private static ObjectPooler objectPooler;
 
@@ -41,7 +39,7 @@ namespace MGDK.Audio
             instance = this;
             DontDestroyOnLoad(gameObject); // Keeps the SoundManager between scenes
 
-            audioSource = GetComponent<AudioSource>();
+            objectPooler = ObjectPooler.SharedInstance;
             InitializeSoundDictionary();
         }
 
@@ -59,31 +57,38 @@ namespace MGDK.Audio
 
         public static void PlaySound(string soundName, float volume = 1, float pitch = 1, float volumeVariance = 0, float pitchVariance = 0)
         {
-            if (instance == null)
-            {
-                Debug.LogWarning("SoundManager instance is null. Ensure SoundManager is initialized.");
-                return;
-            }
-
             if (instance.soundDictionary.TryGetValue(soundName, out Sound sound))
             {
                 SoundClip[] soundClips = sound.soundClips;
-                SoundClip randomSoundClip = soundClips[UnityEngine.Random.Range(0, soundClips.Length)];
-                audioSource.outputAudioMixerGroup = sound.mixer;
+                SoundClip randomSoundClip = soundClips[Random.Range(0, soundClips.Length)];
 
-                // Apply volume variance
-                float finalVolume = volume + Random.Range(-volumeVariance, volumeVariance);
-                finalVolume *= randomSoundClip.volume;
-                finalVolume = Mathf.Clamp(finalVolume, 0, 1); // Ensure volume is within range
+                // Get object from object pool
+                GameObject audioObject = objectPooler.GetPooledObject(0);
+                if (audioObject != null)
+                {
+                    AudioSource audioSource = audioObject.GetComponent<AudioSource>();
 
-                // Apply pitch variance
-                float finalPitch = pitch + Random.Range(-pitchVariance, pitchVariance);
-                finalPitch *= randomSoundClip.pitch;
-                finalPitch = Mathf.Clamp(finalPitch, -3, 3); // Ensure pitch is within range
+                    // Apply volume variance
+                    float finalVolume = volume + Random.Range(-volumeVariance, volumeVariance);
+                    finalVolume *= randomSoundClip.volume;
+                    finalVolume = Mathf.Clamp(finalVolume, 0, 1); // Ensure volume is within range
 
-                audioSource.pitch = finalPitch;
-                audioSource.PlayOneShot(randomSoundClip.clip, finalVolume);
-                audioSource.pitch = 1; // Reset pitch after playing
+                    // Apply pitch variance
+                    float finalPitch = pitch + Random.Range(-pitchVariance, pitchVariance);
+                    finalPitch *= randomSoundClip.pitch;
+                    finalPitch = Mathf.Clamp(finalPitch, -3, 3); // Ensure pitch is within range
+
+                    audioSource.outputAudioMixerGroup = sound.mixer;
+                    audioSource.pitch = finalPitch;
+                    audioSource.volume = finalVolume;
+                    audioSource.clip = randomSoundClip.clip;
+                    audioSource.spatialBlend = 0;
+                    audioObject.SetActive(true);
+                    audioSource.Play();
+
+                    // Call a static method to disable the audio object after clip ends
+                    DisableAudioObject(audioObject, randomSoundClip.clip.length);
+                }
             }
             else
             {
@@ -91,17 +96,60 @@ namespace MGDK.Audio
             }
         }
 
-        public void PlaySoundAtPosition(string soundName, Vector3 position, float volume = 1)
+
+        public static void PlaySoundAtPosition(string soundName, Vector3 position, float volume = 1, float pitch = 1, float volumeVariance = 0, float pitchVariance = 0)
         {
-            if (soundDictionary.TryGetValue(soundName, out Sound sound))
+            if (instance.soundDictionary.TryGetValue(soundName, out Sound sound))
             {
                 SoundClip[] soundClips = sound.soundClips;
-                SoundClip randomSoundClip = soundClips[UnityEngine.Random.Range(0, soundClips.Length)];
-                AudioSource.PlayClipAtPoint(randomSoundClip.clip, position, volume * randomSoundClip.volume);
+                SoundClip randomSoundClip = soundClips[Random.Range(0, soundClips.Length)];
+
+                // Get object from object pool
+                GameObject audioObject = objectPooler.GetPooledObject(0);
+                if (audioObject != null)
+                {
+                    audioObject.transform.position = position;
+                    AudioSource audioSource = audioObject.GetComponent<AudioSource>();
+
+                    // Apply volume variance
+                    float finalVolume = volume + Random.Range(-volumeVariance, volumeVariance);
+                    finalVolume *= randomSoundClip.volume;
+                    finalVolume = Mathf.Clamp(finalVolume, 0, 1); // Ensure volume is within range
+
+                    // Apply pitch variance
+                    float finalPitch = pitch + Random.Range(-pitchVariance, pitchVariance);
+                    finalPitch *= randomSoundClip.pitch;
+                    finalPitch = Mathf.Clamp(finalPitch, -3, 3); // Ensure pitch is within range
+
+                    audioSource.outputAudioMixerGroup = sound.mixer;
+                    audioSource.pitch = finalPitch;
+                    audioSource.volume = finalVolume;
+                    audioSource.clip = randomSoundClip.clip;
+                    audioSource.spatialBlend = 1;
+                    audioObject.SetActive(true);
+                    audioSource.Play();
+
+                    // Call a static method to disable the audio object after clip ends
+                    DisableAudioObject(audioObject, randomSoundClip.clip.length);
+                }
             }
             else
             {
                 Debug.LogWarning($"Sound {soundName} not found in the dictionary.");
+            }
+        }
+
+        private static void DisableAudioObject(GameObject audioObject, float delay)
+        {
+            instance.StartCoroutine(instance.DisableAudioObjectCoroutine(audioObject, delay));
+        }
+
+        private System.Collections.IEnumerator DisableAudioObjectCoroutine(GameObject audioObject, float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            if (audioObject != null)
+            {
+                audioObject.SetActive(false);
             }
         }
     }

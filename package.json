@@ -9,8 +9,5 @@
     "name": "Morgan James",
     "email": "morganhmjames@gmail.com",
     "url": "https://morganjames.dev"
-  },
-  "dependencies": {
-    "com.mgdk.util": "https://github.com/MorganHJames/MGDK-Util.git"
   }
 }
